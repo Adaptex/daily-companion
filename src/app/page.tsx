@@ -1,51 +1,131 @@
-const cards = [
-  { title: "World & AI", hint: "Top stories curated for you" },
-  { title: "Sports", hint: "Cricket & football highlights" },
-  { title: "Card Offers", hint: "NDB, Commercial Bank — today" },
-  { title: "Skill of the Day", hint: "5 minutes to learn something new" },
-  { title: "Workout", hint: "Home, no equipment, fits your day" },
-  { title: "Talk to Companion", hint: "Ask anything, plan your day" },
+import { Suspense } from "react";
+import { WorldAICard, WorldAICardSkeleton } from "@/components/cards/WorldAICard";
+import { CardOffersCard } from "@/components/cards/CardOffersCard";
+import { AutoRefresh } from "@/components/AutoRefresh";
+
+const placeholderCards = [
+  { title: "Sports", hint: "Cricket & football, the highlights only" },
+  { title: "Skill of the Day", hint: "Five minutes well spent" },
+  { title: "Workout", hint: "Home, no equipment, fits today" },
 ];
+
+const companionPromo = {
+  title: "Companion",
+  hint: "Ask anything — about today's news, what to cook, what to learn.",
+};
+
+function greeting(): string {
+  const h = new Date().getHours();
+  if (h < 5) return "Still up?";
+  if (h < 12) return "Good morning.";
+  if (h < 17) return "Good afternoon.";
+  if (h < 21) return "Good evening.";
+  return "Good night.";
+}
 
 export default function Home() {
   const today = new Date().toLocaleDateString("en-GB", {
     weekday: "long",
     day: "numeric",
     month: "long",
+    year: "numeric",
   });
+  const issueNo = Math.floor(
+    (Date.now() - Date.parse("2026-05-01")) / (1000 * 60 * 60 * 24),
+  ) + 1;
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-6 py-12">
-      <header className="mb-10">
-        <p className="text-sm uppercase tracking-widest text-neutral-500">
-          {today} — Colombo
-        </p>
-        <h1 className="mt-2 text-4xl font-semibold tracking-tight">
-          Good morning.
-        </h1>
-        <p className="mt-2 text-neutral-400">
-          Here&apos;s what matters today. Cards will fill in as we wire each one
-          up.
-        </p>
+    <main className="relative mx-auto w-full max-w-6xl px-6 py-10 lg:px-10 lg:py-14">
+      <AutoRefresh />
+
+      {/* Masthead */}
+      <header className="fade-up mb-12 border-b-2 border-ink pb-6">
+        <div className="flex items-center justify-between font-mono text-[11px] uppercase tracking-[0.28em] text-ink-faint">
+          <span>Vol. I</span>
+          <span>Daily Companion</span>
+          <span>Issue №{issueNo}</span>
+        </div>
+
+        <div className="mt-7 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end">
+          <div>
+            <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-accent">
+              {today} — Colombo
+            </p>
+            <h1 className="mt-3 font-display text-[64px] leading-[0.95] tracking-tight text-ink sm:text-[88px]">
+              {greeting()}
+            </h1>
+          </div>
+          <p className="max-w-xs font-display text-[17px] italic leading-snug text-ink-soft">
+            Everything you should know before the day starts — curated, not
+            scrolled.
+          </p>
+        </div>
       </header>
 
-      <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {cards.map((card) => (
+      <section className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <Suspense fallback={<WorldAICardSkeleton />}>
+          <WorldAICard />
+        </Suspense>
+
+        <CardOffersCard />
+
+        {placeholderCards.map((card, i) => (
           <article
             key={card.title}
-            className="rounded-2xl border border-neutral-800 bg-neutral-900/60 p-5 transition hover:border-neutral-700"
+            className="group relative flex flex-col rounded-2xl border border-rule bg-card/70 p-6 backdrop-blur-sm transition hover:border-ink/30 hover:shadow-[0_20px_50px_-25px_rgba(27,24,21,0.25)]"
           >
-            <h2 className="text-lg font-medium">{card.title}</h2>
-            <p className="mt-1 text-sm text-neutral-400">{card.hint}</p>
-            <div className="mt-6 h-24 rounded-lg border border-dashed border-neutral-800 grid place-items-center text-xs text-neutral-600">
-              coming next
+            <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink-faint">
+              Section {String.fromCharCode(68 + i)}
+            </span>
+            <h2 className="mt-2 font-display text-[26px] leading-tight tracking-tight text-ink">
+              {card.title}
+            </h2>
+            <p className="mt-2 text-[13.5px] leading-relaxed text-ink-soft">
+              {card.hint}
+            </p>
+            <div className="mt-auto pt-8">
+              <div className="flex items-center justify-between border-t border-rule pt-3">
+                <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink-faint">
+                  in preparation
+                </span>
+                <span className="font-mono text-[10px] text-accent opacity-0 transition-opacity group-hover:opacity-100">
+                  ◐
+                </span>
+              </div>
             </div>
           </article>
         ))}
+
+        {/* Companion promo — spans full row, gives chat its own banner */}
+        <article className="group relative flex flex-col gap-4 overflow-hidden rounded-2xl border border-rule bg-gradient-to-br from-card/90 via-card/70 to-accent-soft/30 p-7 backdrop-blur-sm transition hover:border-ink/30 hover:shadow-[0_20px_50px_-25px_rgba(27,24,21,0.25)] sm:col-span-2 sm:flex-row sm:items-center sm:justify-between sm:p-8 lg:col-span-3">
+          <div className="flex-1">
+            <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-accent">
+              Section G
+            </span>
+            <h2 className="mt-2 font-display text-[34px] leading-tight tracking-tight text-ink sm:text-[40px]">
+              {companionPromo.title}
+            </h2>
+            <p className="mt-2 max-w-prose text-[14.5px] leading-relaxed text-ink-soft">
+              {companionPromo.hint}
+            </p>
+          </div>
+          <div className="flex flex-none items-center gap-3 self-start sm:self-center">
+            <div className="rounded-full border border-rule bg-paper px-4 py-2 font-mono text-[11px] uppercase tracking-[0.2em] text-ink-faint">
+              in preparation
+            </div>
+            <div className="grid h-12 w-12 place-items-center rounded-full bg-ink text-paper transition group-hover:bg-accent">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+              </svg>
+            </div>
+          </div>
+        </article>
       </section>
 
-      <footer className="mt-12 text-xs text-neutral-600">
-        v0.1 · scaffold only · model backend not yet connected
+      <footer className="mt-16 flex items-center justify-between border-t border-rule pt-6 font-mono text-[10px] uppercase tracking-[0.22em] text-ink-faint">
+        <span>v0.3 · morning edition</span>
+        <span>composed by gemini 2.5 flash</span>
+        <span>refreshes every 15m</span>
       </footer>
     </main>
   );
