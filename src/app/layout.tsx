@@ -1,19 +1,26 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Instrument_Serif, Inter_Tight, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const display = Instrument_Serif({
+  weight: "400",
+  style: ["normal", "italic"],
+  variable: "--font-display",
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const sans = Inter_Tight({
+  variable: "--font-sans",
+  subsets: ["latin"],
+});
+
+const mono = JetBrains_Mono({
+  variable: "--font-mono",
   subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
-  title: "Daily Companion",
+  title: "Daily Companion — Morning Edition",
   description: "Your personal morning briefing.",
 };
 
@@ -25,9 +32,11 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${display.variable} ${sans.variable} ${mono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-neutral-950 text-neutral-100">
+      <body className="min-h-full flex flex-col bg-paper text-ink">
+        <div className="dawn-glow absolute inset-x-0 top-0 h-[480px] pointer-events-none -z-10" />
+        <div className="paper-grain absolute inset-0 opacity-40 pointer-events-none -z-10 mix-blend-multiply" />
         {children}
       </body>
     </html>
