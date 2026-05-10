@@ -1,8 +1,12 @@
 // Standalone script — run by GitHub Actions daily.
-// Uses the same scraping logic as the Vercel cron route.
-import { scrapeAllBanks } from "../src/lib/scrape-offers";
+// dotenv must be configured before any module that reads process.env is loaded.
+import { config } from "dotenv";
+config({ path: ".env.local" }); // no-op in CI where env vars are injected directly
 
 async function main() {
+  // Dynamic import ensures supabase/llm modules load AFTER dotenv has set env vars.
+  const { scrapeAllBanks } = await import("../src/lib/scrape-offers");
+
   const results = await scrapeAllBanks();
   const ok = results.filter((r) => r.ok).length;
   const failed = results.filter((r) => !r.ok).length;
