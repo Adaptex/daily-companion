@@ -109,31 +109,44 @@ async function callGroq(prompt: string): Promise<string> {
 
   const model = process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
 
-  const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${key}`,
-    },
-    body: JSON.stringify({
-      model,
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0.6,
-      max_tokens: 4096,
-    }),
-    cache: "no-store",
-  });
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${key}`,
+      },
+      body: JSON.stringify({
+        model,
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.6,
+        max_tokens: 4096,
+      }),
+      cache: "no-store",
+    });
 
-  if (!res.ok) {
+    if (res.ok) {
+      const data = await res.json();
+      const text = data?.choices?.[0]?.message?.content;
+      if (typeof text !== "string") {
+        throw new Error(`Groq returned no text: ${JSON.stringify(data).slice(0, 300)}`);
+      }
+      return text;
+    }
+
     const body = await res.text();
+
+    if (res.status === 429) {
+      const match = body.match(/try again in (\d+(?:\.\d+)?)s/);
+      const waitMs = match ? Math.ceil(parseFloat(match[1]) * 1000) + 500 : 20_000;
+      console.warn(`[groq] rate limited, retrying in ${waitMs}ms`);
+      await new Promise((r) => setTimeout(r, waitMs));
+      continue;
+    }
+
     console.error(`[groq] ${res.status} for model=${model} body=${body.slice(0, 500)}`);
     throw new Error(`Groq ${res.status}: ${body.slice(0, 300)}`);
   }
 
-  const data = await res.json();
-  const text = data?.choices?.[0]?.message?.content;
-  if (typeof text !== "string") {
-    throw new Error(`Groq returned no text: ${JSON.stringify(data).slice(0, 300)}`);
-  }
-  return text;
+  throw new Error("Groq: max retries exceeded");
 }

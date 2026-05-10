@@ -202,18 +202,27 @@ async function upsertOffers(bank: string, offers: ScrapedOffer[], url: string): 
   // Delete stale offers for this bank before inserting fresh ones.
   await supabaseAdmin.from("bank_offers").delete().eq("bank", bank);
 
-  const rows = offers.map((o) => ({
-    bank: o.bank,
-    merchant: o.merchant,
-    category: o.category,
-    discount: o.discount,
-    conditions: o.conditions ?? null,
-    card_type: o.card_type ?? null,
-    valid_days: o.valid_days ?? null,
-    valid_until: o.valid_until ?? null,
-    url,
-    scraped_at: new Date().toISOString(),
-  }));
+  // Deduplicate by merchant — LLM occasionally extracts the same merchant twice.
+  const seen = new Set<string>();
+  const rows = offers
+    .filter((o) => {
+      const key = o.merchant.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .map((o) => ({
+      bank: o.bank,
+      merchant: o.merchant,
+      category: o.category,
+      discount: o.discount,
+      conditions: o.conditions ?? null,
+      card_type: o.card_type ?? null,
+      valid_days: o.valid_days ?? null,
+      valid_until: o.valid_until ?? null,
+      url,
+      scraped_at: new Date().toISOString(),
+    }));
 
   const { error } = await supabaseAdmin.from("bank_offers").insert(rows);
   if (error) throw new Error(error.message);
