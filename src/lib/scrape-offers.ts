@@ -37,25 +37,48 @@ export async function scrapeAllBanks(): Promise<ScrapeResult[]> {
   return results;
 }
 
+function htmlToText(html: string): string {
+  return html
+    .replace(/<(script|style|nav|footer|header|noscript)[^>]*>[\s\S]*?<\/\1>/gi, " ")
+    .replace(/<!--[\s\S]*?-->/g, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
 async function scrapeBank(bank: BankConfig): Promise<ScrapeResult> {
-  let markdown: string;
+  let text: string;
 
   try {
-    const res = await fetch(`https://r.jina.ai/${bank.url}`, {
-      headers: {
-        Accept: "text/plain",
-        "X-Return-Format": "markdown",
-      },
-      signal: AbortSignal.timeout(20_000),
-    });
-    if (!res.ok) throw new Error(`Jina ${res.status}`);
-    markdown = await res.text();
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 20_000);
+    try {
+      const res = await fetch(bank.url, {
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+          Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+          "Accept-Language": "en-US,en;q=0.5",
+        },
+        signal: controller.signal,
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const html = await res.text();
+      text = htmlToText(html);
+    } finally {
+      clearTimeout(timer);
+    }
   } catch (err) {
     return { bank: bank.name, ok: false, error: `Fetch failed: ${String(err)}` };
   }
 
   // Truncate to stay within LLM context limits.
-  const truncated = markdown.slice(0, 12_000);
+  const truncated = text.slice(0, 12_000);
 
   let offers: ScrapedOffer[];
   try {
