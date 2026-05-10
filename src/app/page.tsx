@@ -2,17 +2,10 @@ import { Suspense } from "react";
 import { WorldAICard, WorldAICardSkeleton } from "@/components/cards/WorldAICard";
 import { CardOffersCard } from "@/components/cards/CardOffersCard";
 import { SportsCard, SportsCardSkeleton } from "@/components/cards/SportsCard";
+import { SkillCard } from "@/components/cards/SkillCard";
+import { WorkoutCard } from "@/components/cards/WorkoutCard";
 import { AutoRefresh } from "@/components/AutoRefresh";
 
-const placeholderCards = [
-  { title: "Skill of the Day", hint: "Five minutes well spent" },
-  { title: "Workout", hint: "Home, no equipment, fits today" },
-];
-
-const companionPromo = {
-  title: "Companion",
-  hint: "Ask anything — about today's news, what to cook, what to learn.",
-};
 
 function greeting(): string {
   const h = new Date().getHours();
@@ -73,32 +66,8 @@ export default function Home() {
           <SportsCard />
         </Suspense>
 
-        {placeholderCards.map((card, i) => (
-          <article
-            key={card.title}
-            className="group relative flex flex-col rounded-2xl border border-rule bg-card/70 p-6 backdrop-blur-sm transition hover:border-ink/30 hover:shadow-[0_20px_50px_-25px_rgba(27,24,21,0.25)]"
-          >
-            <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink-faint">
-              Section {String.fromCharCode(69 + i)}
-            </span>
-            <h2 className="mt-2 font-display text-[26px] leading-tight tracking-tight text-ink">
-              {card.title}
-            </h2>
-            <p className="mt-2 text-[13.5px] leading-relaxed text-ink-soft">
-              {card.hint}
-            </p>
-            <div className="mt-auto pt-8">
-              <div className="flex items-center justify-between border-t border-rule pt-3">
-                <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink-faint">
-                  in preparation
-                </span>
-                <span className="font-mono text-[10px] text-accent opacity-0 transition-opacity group-hover:opacity-100">
-                  ◐
-                </span>
-              </div>
-            </div>
-          </article>
-        ))}
+        <SkillCard />
+        <WorkoutCard />
 
         {/* Companion promo — spans full row, gives chat its own banner */}
         <article className="group relative flex flex-col gap-4 overflow-hidden rounded-2xl border border-rule bg-gradient-to-br from-card/90 via-card/70 to-accent-soft/30 p-7 backdrop-blur-sm transition hover:border-ink/30 hover:shadow-[0_20px_50px_-25px_rgba(27,24,21,0.25)] sm:col-span-2 sm:flex-row sm:items-center sm:justify-between sm:p-8 lg:col-span-3">
@@ -107,10 +76,10 @@ export default function Home() {
               Section G
             </span>
             <h2 className="mt-2 font-display text-[34px] leading-tight tracking-tight text-ink sm:text-[40px]">
-              {companionPromo.title}
+              Companion
             </h2>
             <p className="mt-2 max-w-prose text-[14.5px] leading-relaxed text-ink-soft">
-              {companionPromo.hint}
+              Ask anything — about today's news, what to cook, what to learn.
             </p>
           </div>
           <div className="flex flex-none items-center gap-3 self-start sm:self-center">
