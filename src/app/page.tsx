@@ -1,10 +1,10 @@
 import { Suspense } from "react";
 import { WorldAICard, WorldAICardSkeleton } from "@/components/cards/WorldAICard";
 import { CardOffersCard } from "@/components/cards/CardOffersCard";
+import { SportsCard, SportsCardSkeleton } from "@/components/cards/SportsCard";
 import { AutoRefresh } from "@/components/AutoRefresh";
 
 const placeholderCards = [
-  { title: "Sports", hint: "Cricket & football, the highlights only" },
   { title: "Skill of the Day", hint: "Five minutes well spent" },
   { title: "Workout", hint: "Home, no equipment, fits today" },
 ];
@@ -69,13 +69,17 @@ export default function Home() {
 
         <CardOffersCard />
 
+        <Suspense fallback={<SportsCardSkeleton />}>
+          <SportsCard />
+        </Suspense>
+
         {placeholderCards.map((card, i) => (
           <article
             key={card.title}
             className="group relative flex flex-col rounded-2xl border border-rule bg-card/70 p-6 backdrop-blur-sm transition hover:border-ink/30 hover:shadow-[0_20px_50px_-25px_rgba(27,24,21,0.25)]"
           >
             <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink-faint">
-              Section {String.fromCharCode(68 + i)}
+              Section {String.fromCharCode(69 + i)}
             </span>
             <h2 className="mt-2 font-display text-[26px] leading-tight tracking-tight text-ink">
               {card.title}

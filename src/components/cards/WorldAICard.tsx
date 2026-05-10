@@ -1,5 +1,6 @@
 import { getWorldAIBriefing, type Bullet } from "@/lib/briefing";
 import { RefreshButton } from "@/components/RefreshButton";
+import { Feedback } from "@/components/Feedback";
 
 export async function WorldAICard() {
   let data;
@@ -73,6 +74,10 @@ function LeadStory({ bullet }: { bullet: Bullet }) {
         </p>
       </a>
 
+      <div className="mt-3 flex justify-end">
+        <Feedback id={`world:${bullet.link}`} />
+      </div>
+
       <Popover bullet={bullet} />
     </article>
   );
@@ -107,6 +112,10 @@ function SecondaryStory({ bullet }: { bullet: Bullet }) {
           <p className="mt-1 line-clamp-2 text-[12.5px] text-ink-soft">{bullet.why}</p>
         </div>
       </a>
+
+      <div className="mt-1 flex justify-end">
+        <Feedback id={`world:${bullet.link}`} />
+      </div>
 
       <Popover bullet={bullet} />
     </li>

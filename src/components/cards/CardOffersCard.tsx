@@ -1,5 +1,6 @@
 import { getTodayOffers } from "@/lib/offers";
 import type { Offer } from "@/data/offers";
+import { Feedback } from "@/components/Feedback";
 
 const BANK_TINT: Record<Offer["bank"], string> = {
   "NDB": "bg-[#fde4d3] text-[#7c2d12]",
@@ -90,6 +91,10 @@ function OfferRow({ offer }: { offer: Offer }) {
           {offer.discount}
         </span>
       </a>
+
+      <div className="absolute right-1 top-1.5 opacity-0 transition-opacity group-hover/offer:opacity-100 group-focus-within/offer:opacity-100">
+        <Feedback id={`offer:${offer.bank}:${offer.merchant}`} />
+      </div>
 
       {offer.conditions && (
         <div
