@@ -18,7 +18,7 @@ type ScrapeResult =
   | { bank: string; ok: true; count: number }
   | { bank: string; ok: false; error: string };
 
-const BANK_TIMEOUT_MS = 25_000;
+const BANK_TIMEOUT_MS = 60_000;
 
 export async function scrapeAllBanks(): Promise<ScrapeResult[]> {
   const enabled = BANKS.filter((b) => b.enabled);
@@ -55,24 +55,24 @@ async function scrapeBank(bank: BankConfig): Promise<ScrapeResult> {
   let text: string;
 
   try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 20_000);
-    try {
-      const res = await fetch(bank.url, {
+    const FETCH_TIMEOUT = 25_000;
+    const timeout = <T>(ms: number): Promise<T> =>
+      new Promise((_, reject) => setTimeout(() => reject(new Error(`Timed out after ${ms}ms`)), ms));
+
+    const res = await Promise.race([
+      fetch(bank.url, {
         headers: {
           "User-Agent":
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
           Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
           "Accept-Language": "en-US,en;q=0.5",
         },
-        signal: controller.signal,
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const html = await res.text();
-      text = htmlToText(html);
-    } finally {
-      clearTimeout(timer);
-    }
+      }),
+      timeout<Response>(FETCH_TIMEOUT),
+    ]);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const html = await Promise.race([res.text(), timeout<string>(FETCH_TIMEOUT)]);
+    text = htmlToText(html);
   } catch (err) {
     return { bank: bank.name, ok: false, error: `Fetch failed: ${String(err)}` };
   }
