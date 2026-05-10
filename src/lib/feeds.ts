@@ -33,7 +33,7 @@ export async function fetchFeed(source: string, url: string): Promise<FeedItem[]
       link: it.link ?? "",
       snippet: ((it.contentSnippet ?? it.content ?? "") as string).trim().slice(0, 400),
       pubDate: it.isoDate ?? it.pubDate,
-      image: extractImage(it),
+      image: extractImage(it as unknown as Record<string, unknown> & CustomItem),
     }));
   } catch {
     return [];
