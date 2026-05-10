@@ -20,12 +20,17 @@ type ScrapeResult =
 
 export async function scrapeAllBanks(): Promise<ScrapeResult[]> {
   const enabled = BANKS.filter((b) => b.enabled);
-  const results = await Promise.allSettled(enabled.map(scrapeBank));
+  const results: ScrapeResult[] = [];
 
-  return results.map((r, i) => {
-    if (r.status === "fulfilled") return r.value;
-    return { bank: enabled[i].name, ok: false, error: String(r.reason) };
-  });
+  for (const bank of enabled) {
+    try {
+      results.push(await scrapeBank(bank));
+    } catch (err) {
+      results.push({ bank: bank.name, ok: false, error: String(err) });
+    }
+  }
+
+  return results;
 }
 
 async function scrapeBank(bank: BankConfig): Promise<ScrapeResult> {
@@ -37,7 +42,7 @@ async function scrapeBank(bank: BankConfig): Promise<ScrapeResult> {
         Accept: "text/plain",
         "X-Return-Format": "markdown",
       },
-      signal: AbortSignal.timeout(30_000),
+      signal: AbortSignal.timeout(20_000),
     });
     if (!res.ok) throw new Error(`Jina ${res.status}`);
     markdown = await res.text();
