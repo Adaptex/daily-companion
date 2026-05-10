@@ -1,47 +1,44 @@
-import { offers, type Offer } from "@/data/offers";
+import { supabase } from "./supabase";
 
-const DAY_KEYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
-type DayKey = (typeof DAY_KEYS)[number];
-
-export type GroupedOffers = {
-  today: DayKey;
-  todayLong: string;
-  totalActive: number;
-  byCategory: { category: Offer["category"]; offers: Offer[] }[];
+export type Offer = {
+  id: string;
+  bank: string;
+  merchant: string;
+  category: string;
+  discount: string;
+  conditions?: string;
+  card_type?: string;
+  valid_days?: string[];
+  valid_until?: string;
+  url: string;
+  scraped_at: string;
 };
 
-export function getTodayOffers(now: Date = new Date()): GroupedOffers {
-  const today = DAY_KEYS[now.getDay()];
-  const todayLong = now.toLocaleDateString("en-GB", {
-    weekday: "long",
+export type OffersResult =
+  | { ok: true; offers: Offer[]; scrapedAt: string; totalActive: number }
+  | { ok: false; error: string };
+
+const DAY_KEYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
+
+export async function getTodayOffers(): Promise<OffersResult> {
+  const { data, error } = await supabase
+    .from("bank_offers")
+    .select("*")
+    .order("scraped_at", { ascending: false });
+
+  if (error) return { ok: false, error: error.message };
+  if (!data || data.length === 0) return { ok: false, error: "No offers scraped yet. Scrape runs daily at 5:30am." };
+
+  const today = DAY_KEYS[new Date().getDay()];
+  const now = new Date();
+
+  const active = (data as Offer[]).filter((o) => {
+    if (o.valid_until && new Date(o.valid_until) < now) return false;
+    if (!o.valid_days || o.valid_days.length === 0) return true;
+    return o.valid_days.includes(today);
   });
 
-  const active = offers.filter((o) => {
-    if (o.validUntil && Date.parse(o.validUntil) < now.getTime()) return false;
-    if (!o.validDays || o.validDays.length === 0) return true;
-    return o.validDays.includes(today);
-  });
+  const scrapedAt = data[0]?.scraped_at ?? new Date().toISOString();
 
-  // Group by category, preserve a curated category order.
-  const order: Offer["category"][] = [
-    "Groceries",
-    "Dining",
-    "Pharmacy",
-    "Fuel",
-    "Online",
-    "Travel",
-  ];
-  const byCategory = order
-    .map((category) => ({
-      category,
-      offers: active.filter((o) => o.category === category),
-    }))
-    .filter((g) => g.offers.length > 0);
-
-  return {
-    today,
-    todayLong,
-    totalActive: active.length,
-    byCategory,
-  };
+  return { ok: true, offers: active, scrapedAt, totalActive: active.length };
 }
