@@ -141,7 +141,7 @@ function parsePicks(raw: string, items: TaggedItem[]): SportBullet[] {
         typeof o.why === "string"
       );
     })
-    .map((p) => {
+    .map((p): SportBullet | null => {
       const item = items[p.id];
       if (!item) return null;
       return {
@@ -153,7 +153,7 @@ function parsePicks(raw: string, items: TaggedItem[]): SportBullet[] {
         originalTitle: item.title,
         sport: item.sport,
         forYou: item.matchesPref,
-      } satisfies SportBullet;
+      };
     })
     .filter((b): b is SportBullet => b !== null)
     .slice(0, 5);

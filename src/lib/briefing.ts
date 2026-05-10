@@ -123,7 +123,7 @@ function parsePicks(raw: string, items: FeedItem[]): Bullet[] {
         typeof o.why === "string"
       );
     })
-    .map((p) => {
+    .map((p): Bullet | null => {
       const item = items[p.id];
       if (!item) return null;
       return {
@@ -133,7 +133,7 @@ function parsePicks(raw: string, items: FeedItem[]): Bullet[] {
         link: item.link,
         image: item.image,
         originalTitle: item.title,
-      } satisfies Bullet;
+      };
     })
     .filter((b): b is Bullet => b !== null)
     .slice(0, 6);
