@@ -1,24 +1,41 @@
 // Provider-agnostic LLM call. Swap by env var LLM_PROVIDER.
-// Providers: gemini (default) | nim (NVIDIA free tier, OpenAI-compatible)
-// Auto-fallback: Gemini → NIM on 429 rate-limit.
+// Providers: gemini (default) | nim | groq
+// Auto-fallback chain: Gemini → NIM → Groq on 429 rate-limit.
+// Dev mode: skips LLM entirely to avoid burning free-tier quota on hot-reloads.
 
-type Provider = "gemini" | "nim";
+type Provider = "gemini" | "nim" | "groq";
 
 const PROVIDER: Provider = (process.env.LLM_PROVIDER as Provider) || "gemini";
 
 export async function generate(prompt: string): Promise<string> {
-  if (PROVIDER === "nim") return callNim(prompt);
+  if (process.env.NODE_ENV === "development") {
+    console.info("[llm] dev mode — skipping LLM, using raw RSS fallback");
+    return '{"picks":[]}';
+  }
 
-  // Gemini primary with NIM fallback on rate-limit.
+  if (PROVIDER === "nim") return callNim(prompt);
+  if (PROVIDER === "groq") return callGroq(prompt);
+
+  // Gemini primary → NIM → Groq on rate-limit.
   try {
     return await callGemini(prompt);
   } catch (err) {
-    if (err instanceof Error && err.message.startsWith("Gemini 429")) {
-      console.warn("[llm] Gemini rate-limited, falling back to NIM");
-      return callNim(prompt);
-    }
-    throw err;
+    if (!isRateLimit(err, "Gemini")) throw err;
+    console.warn("[llm] Gemini rate-limited, falling back to NIM");
   }
+
+  try {
+    return await callNim(prompt);
+  } catch (err) {
+    if (!isRateLimit(err, "NIM")) throw err;
+    console.warn("[llm] NIM rate-limited, falling back to Groq");
+  }
+
+  return callGroq(prompt);
+}
+
+function isRateLimit(err: unknown, prefix: string): boolean {
+  return err instanceof Error && err.message.startsWith(`${prefix} 429`);
 }
 
 async function callGemini(prompt: string): Promise<string> {
@@ -82,6 +99,41 @@ async function callNim(prompt: string): Promise<string> {
   if (typeof text !== "string") {
     throw new Error(`NIM returned no text: ${JSON.stringify(data).slice(0, 300)}`);
   }
-  // DeepSeek-R1 wraps reasoning in <think>...</think> — strip it.
+  // DeepSeek models wrap reasoning in <think>...</think> — strip it.
   return text.replace(/<think>[\s\S]*?<\/think>/g, "").trim();
+}
+
+async function callGroq(prompt: string): Promise<string> {
+  const key = process.env.GROQ_API_KEY;
+  if (!key) throw new Error("GROQ_API_KEY missing in .env.local");
+
+  const model = process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
+
+  const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${key}`,
+    },
+    body: JSON.stringify({
+      model,
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.6,
+      max_tokens: 1024,
+    }),
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    const body = await res.text();
+    console.error(`[groq] ${res.status} for model=${model} body=${body.slice(0, 500)}`);
+    throw new Error(`Groq ${res.status}: ${body.slice(0, 300)}`);
+  }
+
+  const data = await res.json();
+  const text = data?.choices?.[0]?.message?.content;
+  if (typeof text !== "string") {
+    throw new Error(`Groq returned no text: ${JSON.stringify(data).slice(0, 300)}`);
+  }
+  return text;
 }

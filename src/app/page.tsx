@@ -129,7 +129,7 @@ export default function Home() {
       <footer className="mt-16 flex items-center justify-between border-t border-rule pt-6 font-mono text-[10px] uppercase tracking-[0.22em] text-ink-faint">
         <span>v0.3 · morning edition</span>
         <span>composed by gemini 2.5 flash</span>
-        <span>refreshes every 15m</span>
+        <span>refreshes every 30m</span>
       </footer>
     </main>
   );

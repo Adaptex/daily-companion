@@ -26,7 +26,7 @@ export type WorldAIBriefing = {
   itemCount: number;
 };
 
-const TTL_MS = 10 * 60 * 1000;
+const TTL_MS = 60 * 60 * 1000;
 let cache: { data: WorldAIBriefing; expires: number } | null = null;
 
 export async function getWorldAIBriefing(force = false): Promise<WorldAIBriefing> {

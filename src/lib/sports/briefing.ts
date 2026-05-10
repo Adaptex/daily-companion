@@ -24,7 +24,7 @@ export type SportsBriefing = {
   itemCount: number;
 };
 
-const TTL_MS = 10 * 60 * 1000;
+const TTL_MS = 60 * 60 * 1000;
 let cache: { data: SportsBriefing; expires: number } | null = null;
 
 export async function getSportsBriefing(force = false): Promise<SportsBriefing> {
