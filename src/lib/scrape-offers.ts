@@ -18,16 +18,20 @@ type ScrapeResult =
   | { bank: string; ok: true; count: number }
   | { bank: string; ok: false; error: string };
 
+const BANK_TIMEOUT_MS = 25_000;
+
 export async function scrapeAllBanks(): Promise<ScrapeResult[]> {
   const enabled = BANKS.filter((b) => b.enabled);
   const results: ScrapeResult[] = [];
 
   for (const bank of enabled) {
-    try {
-      results.push(await scrapeBank(bank));
-    } catch (err) {
-      results.push({ bank: bank.name, ok: false, error: String(err) });
-    }
+    const deadline = new Promise<ScrapeResult>((resolve) =>
+      setTimeout(
+        () => resolve({ bank: bank.name, ok: false, error: "Timed out after 25s" }),
+        BANK_TIMEOUT_MS
+      )
+    );
+    results.push(await Promise.race([scrapeBank(bank), deadline]));
   }
 
   return results;
