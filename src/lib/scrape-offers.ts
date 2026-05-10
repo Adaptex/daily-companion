@@ -18,7 +18,9 @@ type ScrapeResult =
   | { bank: string; ok: true; count: number }
   | { bank: string; ok: false; error: string };
 
-const BANK_TIMEOUT_MS = 60_000;
+const BANK_TIMEOUT_MS = 90_000;
+const FETCH_TIMEOUT_MS = 20_000;
+const JINA_TIMEOUT_MS = 45_000;
 
 export async function scrapeAllBanks(): Promise<ScrapeResult[]> {
   const enabled = BANKS.filter((b) => b.enabled);
@@ -27,7 +29,7 @@ export async function scrapeAllBanks(): Promise<ScrapeResult[]> {
   for (const bank of enabled) {
     const deadline = new Promise<ScrapeResult>((resolve) =>
       setTimeout(
-        () => resolve({ bank: bank.name, ok: false, error: "Timed out after 25s" }),
+        () => resolve({ bank: bank.name, ok: false, error: "Timed out after 90s" }),
         BANK_TIMEOUT_MS
       )
     );
@@ -35,6 +37,15 @@ export async function scrapeAllBanks(): Promise<ScrapeResult[]> {
   }
 
   return results;
+}
+
+function race<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms)
+    ),
+  ]);
 }
 
 function htmlToText(html: string): string {
@@ -51,16 +62,10 @@ function htmlToText(html: string): string {
     .trim();
 }
 
-async function scrapeBank(bank: BankConfig): Promise<ScrapeResult> {
-  let text: string;
-
+async function tryDirectFetch(url: string): Promise<string | null> {
   try {
-    const FETCH_TIMEOUT = 25_000;
-    const timeout = <T>(ms: number): Promise<T> =>
-      new Promise((_, reject) => setTimeout(() => reject(new Error(`Timed out after ${ms}ms`)), ms));
-
-    const res = await Promise.race([
-      fetch(bank.url, {
+    const res = await race(
+      fetch(url, {
         headers: {
           "User-Agent":
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
@@ -68,23 +73,65 @@ async function scrapeBank(bank: BankConfig): Promise<ScrapeResult> {
           "Accept-Language": "en-US,en;q=0.5",
         },
       }),
-      timeout<Response>(FETCH_TIMEOUT),
-    ]);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const html = await Promise.race([res.text(), timeout<string>(FETCH_TIMEOUT)]);
-    text = htmlToText(html);
-  } catch (err) {
-    return { bank: bank.name, ok: false, error: `Fetch failed: ${String(err)}` };
+      FETCH_TIMEOUT_MS,
+      "direct fetch"
+    );
+    if (!res.ok) return null;
+    return htmlToText(await race(res.text(), FETCH_TIMEOUT_MS, "direct body"));
+  } catch {
+    return null;
+  }
+}
+
+async function tryJinaFetch(url: string): Promise<string | null> {
+  try {
+    const res = await race(
+      fetch(`https://r.jina.ai/${url}`, {
+        headers: { Accept: "text/plain", "X-Return-Format": "markdown" },
+      }),
+      JINA_TIMEOUT_MS,
+      "jina fetch"
+    );
+    if (!res.ok) return null;
+    return await race(res.text(), JINA_TIMEOUT_MS, "jina body");
+  } catch {
+    return null;
+  }
+}
+
+async function scrapeBank(bank: BankConfig): Promise<ScrapeResult> {
+  // Try direct fetch; fall back to Jina AI for JS-rendered or blocked pages.
+  let text = await tryDirectFetch(bank.url);
+  let usedJina = false;
+
+  if (!text) {
+    console.info(`[scrape] ${bank.name}: direct fetch failed, trying Jina AI`);
+    text = await tryJinaFetch(bank.url);
+    usedJina = true;
   }
 
-  // Truncate to stay within LLM context limits.
-  const truncated = text.slice(0, 12_000);
+  if (!text) {
+    return { bank: bank.name, ok: false, error: "Fetch failed via direct and Jina AI" };
+  }
 
-  let offers: ScrapedOffer[];
+  let offers: ScrapedOffer[] = [];
   try {
-    offers = await extractOffers(bank, truncated);
+    offers = await extractOffers(bank, text.slice(0, 12_000));
   } catch (err) {
     return { bank: bank.name, ok: false, error: `LLM extraction failed: ${String(err)}` };
+  }
+
+  // If direct fetch yielded no offers, the page is likely JS-rendered — retry with Jina AI.
+  if (offers.length === 0 && !usedJina) {
+    console.info(`[scrape] ${bank.name}: no offers from direct fetch, retrying with Jina AI`);
+    const jinaText = await tryJinaFetch(bank.url);
+    if (jinaText) {
+      try {
+        offers = await extractOffers(bank, jinaText.slice(0, 12_000));
+      } catch {
+        // fall through to "no offers" error
+      }
+    }
   }
 
   if (offers.length === 0) {

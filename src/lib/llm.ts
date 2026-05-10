@@ -83,7 +83,7 @@ async function callNim(prompt: string): Promise<string> {
       model,
       messages: [{ role: "user", content: prompt }],
       temperature: 0.6,
-      max_tokens: 1024,
+      max_tokens: 4096,
     }),
     cache: "no-store",
   });
@@ -119,7 +119,7 @@ async function callGroq(prompt: string): Promise<string> {
       model,
       messages: [{ role: "user", content: prompt }],
       temperature: 0.6,
-      max_tokens: 1024,
+      max_tokens: 4096,
     }),
     cache: "no-store",
   });
