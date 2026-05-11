@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import { fetchManyFeeds, type FeedItem } from "./feeds";
 import { generate } from "./llm";
 
@@ -26,12 +27,7 @@ export type WorldAIBriefing = {
   itemCount: number;
 };
 
-const TTL_MS = 60 * 60 * 1000;
-let cache: { data: WorldAIBriefing; expires: number } | null = null;
-
-export async function getWorldAIBriefing(force = false): Promise<WorldAIBriefing> {
-  if (!force && cache && Date.now() < cache.expires) return cache.data;
-
+async function fetchWorldAIBriefing(): Promise<WorldAIBriefing> {
   const items = await fetchManyFeeds(WORLD_AI_FEEDS);
 
   if (items.length === 0) {
@@ -50,20 +46,19 @@ export async function getWorldAIBriefing(force = false): Promise<WorldAIBriefing
   const picks = parsePicks(raw, recent);
   const bullets: Bullet[] = picks.length ? picks : fallbackBullets(recent);
 
-  const data: WorldAIBriefing = {
+  return {
     lead: bullets[0] ?? null,
     rest: bullets.slice(1, 6),
     generatedAt: new Date().toISOString(),
     itemCount: recent.length,
   };
-
-  cache = { data, expires: Date.now() + TTL_MS };
-  return data;
 }
 
-export function invalidateBriefingCache(): void {
-  cache = null;
-}
+export const getWorldAIBriefing = unstable_cache(
+  fetchWorldAIBriefing,
+  ["world-ai-briefing"],
+  { revalidate: 3600, tags: ["world-ai-briefing"] },
+);
 
 function sortByDate(items: FeedItem[]): FeedItem[] {
   return [...items].sort((a, b) => {

@@ -10,6 +10,7 @@ export type ScrapedOffer = {
   conditions?: string;
   card_type?: string;
   valid_days?: string[];
+  valid_from?: string;
   valid_until?: string;
   url: string;
 };
@@ -158,9 +159,11 @@ From the page content below, extract every card offer you can find. For each off
 - conditions: key conditions in one sentence (optional)
 - card_type: "Credit", "Debit", or "Both" (optional, omit if unclear)
 - valid_days: array of day names if day-specific (e.g. ["Mon","Tue"]), omit if all days
+- valid_from: ISO date string (e.g. "2026-06-01") if the offer has not started yet, omit if already active
+- valid_until: ISO date string (e.g. "2026-07-31") if an end date is stated, omit if ongoing
 
 Return ONLY valid JSON, no markdown:
-{"offers":[{"merchant":"...","category":"...","discount":"...","conditions":"...","card_type":"...","valid_days":["Mon"]}]}
+{"offers":[{"merchant":"...","category":"...","discount":"...","conditions":"...","card_type":"...","valid_days":["Mon"],"valid_from":"2026-06-01","valid_until":"2026-07-31"}]}
 
 If no clear card offers are found, return {"offers":[]}.
 
@@ -192,6 +195,7 @@ ${markdown}`;
       valid_days: Array.isArray(o.valid_days)
         ? (o.valid_days as unknown[]).map(String)
         : undefined,
+      valid_from: o.valid_from ? String(o.valid_from) : undefined,
       valid_until: o.valid_until ? String(o.valid_until) : undefined,
       url: bank.url,
     }))
@@ -219,6 +223,7 @@ async function upsertOffers(bank: string, offers: ScrapedOffer[], url: string): 
       conditions: o.conditions ?? null,
       card_type: o.card_type ?? null,
       valid_days: o.valid_days ?? null,
+      valid_from: o.valid_from ?? null,
       valid_until: o.valid_until ?? null,
       url,
       scraped_at: new Date().toISOString(),

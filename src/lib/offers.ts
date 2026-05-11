@@ -9,6 +9,7 @@ export type Offer = {
   conditions?: string;
   card_type?: string;
   valid_days?: string[];
+  valid_from?: string;
   valid_until?: string;
   url: string;
   scraped_at: string;
@@ -33,6 +34,7 @@ export async function getTodayOffers(): Promise<OffersResult> {
   const now = new Date();
 
   const active = (data as Offer[]).filter((o) => {
+    if (o.valid_from && new Date(o.valid_from) > now) return false;
     if (o.valid_until && new Date(o.valid_until) < now) return false;
     if (!o.valid_days || o.valid_days.length === 0) return true;
     return o.valid_days.includes(today);

@@ -1,5 +1,6 @@
 // Sports briefing. LLM picks lead + 4 secondary, with FOR YOU flag on preference matches.
 
+import { unstable_cache } from "next/cache";
 import { generate } from "@/lib/llm";
 import { fetchSportsNews, type Sport, type SportFeedItem } from "./news";
 import { getSportsStrip, type StripState } from "./strip";
@@ -24,12 +25,7 @@ export type SportsBriefing = {
   itemCount: number;
 };
 
-const TTL_MS = 60 * 60 * 1000;
-let cache: { data: SportsBriefing; expires: number } | null = null;
-
-export async function getSportsBriefing(force = false): Promise<SportsBriefing> {
-  if (!force && cache && Date.now() < cache.expires) return cache.data;
-
+async function fetchSportsBriefing(): Promise<SportsBriefing> {
   const [items, strip] = await Promise.all([fetchSportsNews(), getSportsStrip()]);
 
   if (items.length === 0) {
@@ -58,21 +54,20 @@ export async function getSportsBriefing(force = false): Promise<SportsBriefing> 
   const picks = parsePicks(raw, tagged);
   const bullets: SportBullet[] = picks.length ? picks : fallbackBullets(tagged);
 
-  const data: SportsBriefing = {
+  return {
     strip,
     lead: bullets[0] ?? null,
     rest: bullets.slice(1, 5),
     generatedAt: new Date().toISOString(),
     itemCount: recent.length,
   };
-
-  cache = { data, expires: Date.now() + TTL_MS };
-  return data;
 }
 
-export function invalidateSportsBriefingCache(): void {
-  cache = null;
-}
+export const getSportsBriefing = unstable_cache(
+  fetchSportsBriefing,
+  ["sports-briefing"],
+  { revalidate: 3600, tags: ["sports-briefing"] },
+);
 
 function sortByDate(items: SportFeedItem[]): SportFeedItem[] {
   return [...items].sort((a, b) => {

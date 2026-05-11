@@ -100,6 +100,26 @@
   animation: spin 1.4s linear infinite;
 }
 
+@keyframes scan {
+  0% { transform: translateX(-100%); opacity: 0; }
+  20% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { transform: translateX(200%); opacity: 0; }
+}
+
+.scan-line {
+  animation: scan 4s ease-in-out infinite;
+}
+
+@keyframes slide-progress {
+  from { width: 0%; }
+  to { width: 100%; }
+}
+
+.slide-progress {
+  animation: slide-progress 6s linear forwards;
+}
+
 /* Respect user motion preferences (NN/g + WCAG 2.3.3) */
 @media (prefers-reduced-motion: reduce) {
   *,

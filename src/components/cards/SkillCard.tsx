@@ -19,12 +19,15 @@ export function SkillCard() {
   const tint = CATEGORY_TINT[skill.category] ?? "bg-paper-deep text-ink-soft";
 
   return (
-    <section className="group relative flex flex-col rounded-2xl border border-rule bg-card/80 p-6 backdrop-blur-sm">
+    <section className="group relative flex h-full flex-col rounded-2xl border border-rule bg-card/80 p-6 backdrop-blur-sm transition-[transform,box-shadow] duration-300 hover:-translate-y-0.5 hover:shadow-[0_20px_50px_-20px_rgba(27,24,21,0.15)]">
       <header className="mb-4 flex items-baseline justify-between border-b border-rule pb-3">
         <div>
-          <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink-faint">
-            Section E
-          </span>
+          <div className="flex items-center gap-1.5">
+            <div className="h-3 w-0.5 rounded-full bg-accent/40" />
+            <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink-faint">
+              Section E
+            </span>
+          </div>
           <h2 className="mt-1 font-display text-[26px] leading-tight tracking-tight text-ink">
             Skill of the Day
           </h2>

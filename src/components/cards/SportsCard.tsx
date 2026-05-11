@@ -1,6 +1,7 @@
 import { getSportsBriefing, type SportBullet } from "@/lib/sports/briefing";
 import type { StripState } from "@/lib/sports/strip";
 import { Feedback } from "@/components/Feedback";
+import { ImageWithFallback } from "@/components/ImageWithFallback";
 
 const SPORT_LABEL: Record<SportBullet["sport"], string> = {
   cricket: "Cricket",
@@ -87,16 +88,15 @@ function LeadStory({ bullet }: { bullet: SportBullet }) {
         className="block focus:outline-none"
       >
         {bullet.image && (
-          <div className="relative mb-3 aspect-[16/9] w-full overflow-hidden rounded-lg border border-rule bg-paper-deep">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={bullet.image}
-              alt=""
-              loading="eager"
-              className="h-full w-full object-cover transition-transform duration-700 group-hover/item:scale-[1.03]"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-ink/30 via-transparent to-transparent" />
-          </div>
+          <ImageWithFallback
+            src={bullet.image}
+            loading="eager"
+            containerClassName="relative mb-3 aspect-[16/9] w-full overflow-hidden rounded-lg border border-rule bg-paper-deep"
+            imgClassName="h-full w-full object-cover transition-transform duration-700 group-hover/item:scale-[1.03]"
+            minWidth={800}
+            minHeight={450}
+            withGradient
+          />
         )}
 
         <SportTag bullet={bullet} accent />
@@ -171,12 +171,15 @@ function CardShell({
   strip?: StripState;
 }) {
   return (
-    <section className="relative flex flex-col rounded-2xl border border-rule bg-card/80 p-6 backdrop-blur-sm">
+    <section className="relative flex h-full flex-col rounded-2xl border border-rule bg-card/80 p-6 backdrop-blur-sm transition-[transform,box-shadow] duration-300 hover:-translate-y-0.5 hover:shadow-[0_20px_50px_-20px_rgba(27,24,21,0.15)]">
       <header className="mb-4 flex items-baseline justify-between border-b border-rule pb-3">
         <div>
-          <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink-faint">
-            Section D
-          </span>
+          <div className="flex items-center gap-1.5">
+            <div className="h-3 w-0.5 rounded-full bg-accent/40" />
+            <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink-faint">
+              Section D
+            </span>
+          </div>
           <h2 className="mt-1 font-display text-[26px] leading-tight tracking-tight text-ink">
             Sports
           </h2>
