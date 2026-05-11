@@ -44,7 +44,11 @@ export function CardOffersCard() {
     ? new Date(result.scrapedAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
     : null;
 
-  const byCategory = filtered.reduce<Record<string, Offer[]>>((acc, o) => {
+  const MAX_VISIBLE = 10;
+  const visibleOffers = filtered.slice(0, MAX_VISIBLE);
+  const hiddenCount = filtered.length - visibleOffers.length;
+
+  const byCategory = visibleOffers.reduce<Record<string, Offer[]>>((acc, o) => {
     (acc[o.category] ??= []).push(o);
     return acc;
   }, {});
@@ -177,6 +181,18 @@ export function CardOffersCard() {
             </li>
           ))}
         </ul>
+      )}
+
+      {result?.ok && hiddenCount > 0 && (
+        <a
+          href="/offers"
+          className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-rule py-2.5 font-mono text-[10px] uppercase tracking-[0.22em] text-ink-faint transition hover:border-ink/30 hover:text-ink"
+        >
+          View all {filtered.length} offers
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M5 12h14M12 5l7 7-7 7" />
+          </svg>
+        </a>
       )}
 
       <footer className="mt-auto border-t border-rule pt-3 font-mono text-[10px] uppercase tracking-[0.22em] text-ink-faint">
