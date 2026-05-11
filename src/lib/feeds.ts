@@ -50,15 +50,15 @@ export async function fetchManyFeeds(
 function extractImage(item: Record<string, unknown> & CustomItem): string | undefined {
   // 1. media:content
   const mc = item["media:content"];
-  if (mc?.$?.url) return mc.$.url;
+  if (mc?.$?.url) return upgradeImageUrl(mc.$.url);
 
   // 2. media:thumbnail
   const mt = item["media:thumbnail"];
-  if (mt?.$?.url) return mt.$.url;
+  if (mt?.$?.url) return upgradeImageUrl(mt.$.url);
 
   // 3. enclosure (RSS standard)
   const enc = item.enclosure as { url?: string; type?: string } | undefined;
-  if (enc?.url && (!enc.type || enc.type.startsWith("image/"))) return enc.url;
+  if (enc?.url && (!enc.type || enc.type.startsWith("image/"))) return upgradeImageUrl(enc.url);
 
   // 4. First <img> in content/content:encoded
   const contentRaw =
@@ -66,7 +66,14 @@ function extractImage(item: Record<string, unknown> & CustomItem): string | unde
     (item.content as string | undefined) ||
     "";
   const match = contentRaw.match(/<img[^>]+src=["']([^"']+)["']/i);
-  if (match) return match[1];
+  if (match) return upgradeImageUrl(match[1]);
 
   return undefined;
+}
+
+function upgradeImageUrl(url: string): string {
+  // BBC serves thumbnails at /news/{w}/ and /ace/standard/{w}/ — upgrade to 1536px
+  return url
+    .replace(/ichef\.bbci\.co\.uk\/news\/\d+\//, "ichef.bbci.co.uk/news/1536/")
+    .replace(/ichef\.bbci\.co\.uk\/ace\/standard\/\d+\//, "ichef.bbci.co.uk/ace/standard/1536/");
 }

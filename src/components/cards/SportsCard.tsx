@@ -117,7 +117,7 @@ export function SportsCardSkeleton() {
       </header>
 
       <div className="mb-4 h-14 animate-pulse rounded-md bg-paper-deep" />
-      <div className="aspect-[4/3] w-full animate-pulse rounded-xl bg-paper-deep" />
+      <div className="aspect-[16/9] w-full animate-pulse rounded-xl bg-paper-deep" />
       <div className="mt-3 h-14 animate-pulse rounded-xl bg-paper-deep" />
       <div className="mt-2 flex gap-2">
         {[0, 1, 2].map((i) => (

@@ -3,12 +3,15 @@
 import { useEffect, useState } from "react";
 import type { Offer, OffersResult } from "@/lib/offers";
 import { Feedback } from "@/components/Feedback";
-import { OFFER_CATEGORIES, type OfferCategory } from "@/config/banks";
+import { type OfferCategory } from "@/config/banks";
 
 function parseDiscount(d: string): number {
   const m = d.match(/(\d+)/);
   return m ? parseInt(m[1]) : 0;
 }
+
+const MAX_VISIBLE = 10;
+const MAX_CATEGORY_CHIPS = 6;
 
 export function CardOffersCard() {
   const [result, setResult] = useState<OffersResult | null>(null);
@@ -22,39 +25,41 @@ export function CardOffersCard() {
       .catch(() => setResult({ ok: false, error: "Failed to load offers." }));
   }, []);
 
-  const highlights = result?.ok
-    ? [...result.offers]
-        .sort((a, b) => parseDiscount(b.discount) - parseDiscount(a.discount))
-        .slice(0, 3)
-    : [];
-
   const filtered = result?.ok
-    ? result.offers.filter(
-        (o) =>
-          (category === "All" || o.category === category) &&
-          (!search || o.merchant.toLowerCase().includes(search.toLowerCase()))
-      )
+    ? result.offers
+        .sort((a, b) => parseDiscount(b.discount) - parseDiscount(a.discount))
+        .filter(
+          (o) =>
+            (category === "All" || o.category === category) &&
+            (!search || o.merchant.toLowerCase().includes(search.toLowerCase())),
+        )
     : [];
 
-  const availableCategories = result?.ok
-    ? (["All", ...new Set(result.offers.map((o) => o.category))] as OfferCategory[])
-    : (["All"] as OfferCategory[]);
+  // Show only the most-populated categories (avoid 18-chip overflow)
+  const topCategories: OfferCategory[] = result?.ok
+    ? (["All", ...Object.entries(
+        result.offers.reduce<Record<string, number>>((acc, o) => {
+          acc[o.category] = (acc[o.category] ?? 0) + 1;
+          return acc;
+        }, {}),
+      )
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, MAX_CATEGORY_CHIPS - 1)
+        .map(([cat]) => cat)] as OfferCategory[])
+    : ["All"];
 
   const scrapedTime = result?.ok
-    ? new Date(result.scrapedAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
+    ? new Date(result.scrapedAt).toLocaleTimeString("en-GB", {
+        hour: "2-digit",
+        minute: "2-digit",
+      })
     : null;
 
-  const MAX_VISIBLE = 10;
   const visibleOffers = filtered.slice(0, MAX_VISIBLE);
   const hiddenCount = filtered.length - visibleOffers.length;
 
-  const byCategory = visibleOffers.reduce<Record<string, Offer[]>>((acc, o) => {
-    (acc[o.category] ??= []).push(o);
-    return acc;
-  }, {});
-
   return (
-    <section className="relative flex h-full flex-col rounded-2xl border border-rule bg-card/80 p-6 backdrop-blur-sm transition-[transform,box-shadow] duration-300 hover:-translate-y-0.5 hover:shadow-[0_20px_50px_-20px_rgba(27,24,21,0.15)]">
+    <section className="relative flex flex-col rounded-2xl border border-rule bg-card/80 p-6 backdrop-blur-sm transition-[transform,box-shadow] duration-300 hover:-translate-y-0.5 hover:shadow-[0_20px_50px_-20px_rgba(27,24,21,0.15)]">
       <header className="mb-4 flex items-baseline justify-between border-b border-rule pb-3">
         <div>
           <div className="flex items-center gap-1.5">
@@ -71,36 +76,6 @@ export function CardOffersCard() {
           {result?.ok ? `${result.totalActive} live` : "—"}
         </span>
       </header>
-
-      {/* Today's highlights */}
-      {highlights.length > 0 && (
-        <div className="mb-4 rounded-xl border border-rule bg-paper-deep/60 p-3">
-          <p className="mb-2 font-mono text-[9px] uppercase tracking-[0.25em] text-ink-faint">
-            Today&apos;s highlights
-          </p>
-          <div className="grid grid-cols-3 gap-2">
-            {highlights.map((o) => (
-              <a
-                key={o.id}
-                href={o.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group flex flex-col gap-0.5 rounded-lg border border-transparent p-2 transition hover:border-rule hover:bg-paper"
-              >
-                <span className="font-display text-[22px] leading-none tracking-tight text-accent">
-                  {o.discount}
-                </span>
-                <span className="mt-1 line-clamp-1 text-[11px] font-medium text-ink">
-                  {o.merchant}
-                </span>
-                <span className="font-mono text-[9px] uppercase tracking-wider text-ink-faint">
-                  {o.bank}
-                </span>
-              </a>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Search */}
       <div className="relative mb-3">
@@ -125,9 +100,9 @@ export function CardOffersCard() {
         </svg>
       </div>
 
-      {/* Category filter */}
+      {/* Top categories only — max 6 chips */}
       <div className="mb-4 flex flex-wrap gap-1.5">
-        {availableCategories.map((cat) => (
+        {topCategories.map((cat) => (
           <button
             key={cat}
             onClick={() => setCategory(cat)}
@@ -142,9 +117,9 @@ export function CardOffersCard() {
         ))}
       </div>
 
-      {/* States */}
+      {/* Loading */}
       {!result && (
-        <div className="flex flex-1 flex-col gap-2">
+        <div className="flex flex-col gap-2">
           {[1, 2, 3].map((i) => (
             <div key={i} className="h-10 animate-pulse rounded-md bg-paper-deep" />
           ))}
@@ -152,33 +127,27 @@ export function CardOffersCard() {
       )}
 
       {result && !result.ok && (
-        <div className="flex flex-1 flex-col items-center justify-center py-8 text-center">
-          <p className="font-display text-[18px] italic text-ink-soft">Couldn&apos;t retrieve offers.</p>
+        <div className="py-8 text-center">
+          <p className="font-display text-[18px] italic text-ink-soft">
+            Couldn&apos;t retrieve offers.
+          </p>
           <p className="mt-2 max-w-[24ch] text-[12px] text-ink-faint">{result.error}</p>
         </div>
       )}
 
       {result?.ok && filtered.length === 0 && (
-        <div className="flex flex-1 flex-col items-center justify-center py-8 text-center">
+        <div className="py-8 text-center">
           <p className="font-display text-[18px] italic text-ink-soft">
-            No {search ? `"${search}"` : category === "All" ? "" : category.toLowerCase()} offers found.
+            No {search ? `"${search}"` : category === "All" ? "" : category.toLowerCase()} offers
+            found.
           </p>
         </div>
       )}
 
-      {result?.ok && filtered.length > 0 && (
-        <ul className="space-y-4">
-          {Object.entries(byCategory).map(([cat, offers]) => (
-            <li key={cat}>
-              <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.22em] text-ink-faint">
-                {cat}
-              </p>
-              <ul className="space-y-1">
-                {offers.map((o) => (
-                  <OfferRow key={o.id} offer={o} />
-                ))}
-              </ul>
-            </li>
+      {result?.ok && visibleOffers.length > 0 && (
+        <ul className="space-y-1">
+          {visibleOffers.map((o) => (
+            <OfferRow key={o.id} offer={o} />
           ))}
         </ul>
       )}
@@ -188,14 +157,23 @@ export function CardOffersCard() {
           href="/offers"
           className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-rule py-2.5 font-mono text-[10px] uppercase tracking-[0.22em] text-ink-faint transition hover:border-ink/30 hover:text-ink"
         >
-          View all {filtered.length} offers
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          View all {result.totalActive} offers
+          <svg
+            width="10"
+            height="10"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
             <path d="M5 12h14M12 5l7 7-7 7" />
           </svg>
         </a>
       )}
 
-      <footer className="mt-auto border-t border-rule pt-3 font-mono text-[10px] uppercase tracking-[0.22em] text-ink-faint">
+      <footer className="mt-4 border-t border-rule pt-3 font-mono text-[10px] uppercase tracking-[0.22em] text-ink-faint">
         {scrapedTime ? `Updated ${scrapedTime}` : "Checking offers…"}
       </footer>
     </section>
@@ -209,9 +187,8 @@ function OfferRow({ offer }: { offer: Offer }) {
         href={offer.url}
         target="_blank"
         rel="noopener noreferrer"
-        className="group/link flex items-center gap-3 rounded-md py-2 px-1 transition hover:bg-paper-deep/40 focus:outline-none focus:bg-paper-deep/40"
+        className="group/link flex items-center gap-3 rounded-md px-1 py-2 transition hover:bg-paper-deep/40 focus:outline-none focus:bg-paper-deep/40"
       >
-        {/* Left accent bar */}
         <div className="h-8 w-0.5 flex-none self-stretch rounded-full bg-accent/20 transition group-hover/link:bg-accent/50" />
 
         <div className="min-w-0 flex-1">

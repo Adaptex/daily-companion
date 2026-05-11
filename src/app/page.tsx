@@ -82,7 +82,7 @@ export default function Home() {
         <div className="h-px flex-1 bg-rule" />
       </div>
 
-      <section className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+      <section className="grid grid-cols-1 gap-5 items-start sm:grid-cols-2 lg:grid-cols-3">
         {/* World & AI — spans 2 cols */}
         <div className="fade-up sm:col-span-2 lg:col-span-2" style={{ animationDelay: "0ms" }}>
           <Suspense fallback={<WorldAICardSkeleton />}>
@@ -95,8 +95,8 @@ export default function Home() {
           <CardOffersCard />
         </div>
 
-        {/* Sports */}
-        <div className="fade-up" style={{ animationDelay: "160ms" }}>
+        {/* Sports — spans 2 cols to match World & AI weight */}
+        <div className="fade-up sm:col-span-2 lg:col-span-2" style={{ animationDelay: "160ms" }}>
           <Suspense fallback={<SportsCardSkeleton />}>
             <SportsCard />
           </Suspense>
@@ -107,8 +107,8 @@ export default function Home() {
           <SkillCard />
         </div>
 
-        {/* Workout */}
-        <div className="fade-up" style={{ animationDelay: "320ms" }}>
+        {/* Workout — full width for richer interactive content */}
+        <div className="fade-up sm:col-span-2 lg:col-span-3" style={{ animationDelay: "320ms" }}>
           <WorkoutCard />
         </div>
 

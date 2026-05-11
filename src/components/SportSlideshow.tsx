@@ -39,9 +39,9 @@ export function SportSlideshow({ bullets }: Props) {
 
   return (
     <div className="flex flex-col gap-3">
-      {/* Slideshow — 4:3 fits better in a narrow 1-col card */}
+      {/* Slideshow — 16:9 matches World & AI weight in the 2-col slot */}
       <div
-        className="group/sw relative aspect-[4/3] w-full overflow-hidden rounded-xl bg-paper-deep"
+        className="group/sw relative aspect-[16/9] w-full overflow-hidden rounded-xl bg-paper-deep"
         onMouseEnter={() => setPaused(true)}
         onMouseLeave={() => setPaused(false)}
       >
@@ -87,25 +87,32 @@ export function SportSlideshow({ bullets }: Props) {
         </p>
       </div>
 
-      {/* Sport chips + highlights link */}
+      {/* One chip per unique sport — clicking jumps to first story of that sport */}
       <div className="flex flex-wrap items-center gap-1.5">
-        {bullets.map((b, i) => (
-          <button
-            key={i}
-            onClick={() => go(i)}
-            aria-label={`Jump to ${SPORT_LABEL[b.sport]} story`}
-            className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 font-mono text-[9px] uppercase tracking-wider transition-all duration-200 ${
-              i === current
-                ? "bg-ink text-paper"
-                : "border border-rule text-ink-faint hover:border-ink/40 hover:text-ink"
-            }`}
-          >
-            {SPORT_LABEL[b.sport]}
-            {b.forYou && i !== current && (
-              <span className="h-1.5 w-1.5 rounded-full bg-accent" />
-            )}
-          </button>
-        ))}
+        {(
+          [...new Map(bullets.map(b => [b.sport, b])).entries()]
+        ).map(([sport, _]) => {
+          const isActive = bullets[current].sport === sport;
+          const firstIdx = bullets.findIndex(b => b.sport === sport);
+          const hasForYou = bullets.some(b => b.sport === sport && b.forYou);
+          return (
+            <button
+              key={sport}
+              onClick={() => go(firstIdx)}
+              aria-label={`Jump to ${SPORT_LABEL[sport as SportBullet["sport"]]} stories`}
+              className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 font-mono text-[9px] uppercase tracking-wider transition-all duration-200 ${
+                isActive
+                  ? "bg-ink text-paper"
+                  : "border border-rule text-ink-faint hover:border-ink/40 hover:text-ink"
+              }`}
+            >
+              {SPORT_LABEL[sport as SportBullet["sport"]]}
+              {hasForYou && !isActive && (
+                <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+              )}
+            </button>
+          );
+        })}
 
         {/* YouTube highlights — updates with active slide */}
         <a
