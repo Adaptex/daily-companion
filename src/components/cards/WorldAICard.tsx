@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getWorldAIBriefing, type Bullet } from "@/lib/briefing";
 import { RefreshButton } from "@/components/RefreshButton";
 import { NewsSlideshow } from "@/components/NewsSlideshow";
@@ -75,6 +76,14 @@ function CardShell({
         </div>
       </header>
       {children}
+      <div className="mt-4 border-t border-rule pt-3 flex justify-end">
+        <Link
+          href="/news"
+          className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-faint transition-colors hover:text-accent"
+        >
+          All stories →
+        </Link>
+      </div>
     </section>
   );
 }
