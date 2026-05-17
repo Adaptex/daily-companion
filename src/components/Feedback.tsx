@@ -5,50 +5,31 @@
 // See memory/project_daily_companion_todos.md TODO #3.
 
 import { useEffect, useState } from "react";
+import {
+  readFeedbackStore,
+  subscribeFeedbackStore,
+  writeFeedbackStore,
+  type FeedbackVote,
+} from "@/lib/feedback-store";
 
-type Vote = "up" | "down" | null;
-
-const STORAGE_KEY = "dc.feedback.v1";
-
-type Store = Record<string, "up" | "down">;
-
-function readStore(): Store {
-  if (typeof window === "undefined") return {};
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as Store) : {};
-  } catch {
-    return {};
-  }
-}
-
-function writeStore(store: Store): void {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
-  } catch {
-    /* quota exceeded — ignore */
-  }
-}
+type Vote = FeedbackVote | null;
 
 export function Feedback({ id, label }: { id: string; label?: string }) {
-  const [vote, setVote] = useState<Vote>(null);
+  const [vote, setVote] = useState<Vote>(() => readFeedbackStore()[id] ?? null);
 
   useEffect(() => {
-    const store = readStore();
-    setVote(store[id] ?? null);
+    const syncVote = () => setVote(readFeedbackStore()[id] ?? null);
+    return subscribeFeedbackStore(syncVote);
   }, [id]);
 
   function cast(next: "up" | "down") {
-    const store = readStore();
+    const store = readFeedbackStore();
     if (store[id] === next) {
       delete store[id];
-      setVote(null);
     } else {
       store[id] = next;
-      setVote(next);
     }
-    writeStore(store);
+    writeFeedbackStore(store);
   }
 
   return (

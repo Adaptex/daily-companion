@@ -1,14 +1,15 @@
 // Provider-agnostic LLM call. Swap by env var LLM_PROVIDER.
 // Providers: gemini (default) | nim | groq
 // Auto-fallback chain: Gemini → NIM → Groq on 429 rate-limit.
-// Dev mode: skips LLM entirely to avoid burning free-tier quota on hot-reloads.
+// Dev mode normally skips LLM to avoid burning free-tier quota on hot-reloads.
+// Offer scraping is exempt because the scraper needs a real JSON schema.
 
 type Provider = "gemini" | "nim" | "groq";
 
 const PROVIDER: Provider = (process.env.LLM_PROVIDER as Provider) || "gemini";
 
 export async function generate(prompt: string): Promise<string> {
-  if (process.env.NODE_ENV === "development") {
+  if (process.env.NODE_ENV === "development" && !isOfferScrapePrompt(prompt)) {
     console.info("[llm] dev mode — skipping LLM, using raw RSS fallback");
     return '{"picks":[]}';
   }
@@ -32,6 +33,10 @@ export async function generate(prompt: string): Promise<string> {
   }
 
   return callGroq(prompt);
+}
+
+function isOfferScrapePrompt(prompt: string): boolean {
+  return prompt.toLowerCase().includes("credit/debit card offers");
 }
 
 function shouldFallback(err: unknown): boolean {

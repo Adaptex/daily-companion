@@ -1,8 +1,18 @@
+import { OFFER_CATEGORIES, type OfferCategory as CanonicalOfferCategory } from "@/lib/offer-taxonomy";
+
 export type BankConfig = {
   name: string;
   url: string;
   enabled: boolean;
   note?: string;
+  /**
+   * Regex source string that matches per-offer detail page paths inside the
+   * listing page HTML (e.g. "/cards/card-offers/offer-details/\\d+").
+   * Used by normalizeOfferPipeline to discover individual offer URLs.
+   */
+  offerDetailUrlPattern?: string;
+  /** Base URL prepended to relative paths found by offerDetailUrlPattern. */
+  offerDetailUrlBase?: string;
 };
 
 export const BANKS: BankConfig[] = [
@@ -10,6 +20,8 @@ export const BANKS: BankConfig[] = [
     name: "NDB",
     url: "https://www.ndbbank.com/cards/card-offers",
     enabled: true,
+    offerDetailUrlPattern: "/cards/card-offers/offer-details/\\d+",
+    offerDetailUrlBase: "https://www.ndbbank.com",
   },
   {
     name: "Commercial Bank",
@@ -34,7 +46,7 @@ export const BANKS: BankConfig[] = [
   },
   {
     name: "People's Bank",
-    url: "https://www.peoplesbank.lk/special-offers/",
+    url: "https://www.peoplesbank.lk/installments/?cardType=credit_card",
     enabled: true,
   },
   {
@@ -44,22 +56,10 @@ export const BANKS: BankConfig[] = [
   },
   {
     name: "DFCC",
-    url: "https://www.dfcc.lk/dfcc-card-offers",
+    url: "https://www.dfcc.lk/dfcc-card-offers/today-promotions",
     enabled: true,
   },
 ];
 
-export const OFFER_CATEGORIES = [
-  "All",
-  "Groceries",
-  "Dining",
-  "Pharmacy",
-  "Fuel",
-  "Online",
-  "Travel",
-  "Health",
-  "Entertainment",
-  "Other",
-] as const;
-
-export type OfferCategory = (typeof OFFER_CATEGORIES)[number];
+export { OFFER_CATEGORIES };
+export type OfferCategory = CanonicalOfferCategory | "All";
