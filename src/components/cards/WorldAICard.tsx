@@ -58,17 +58,17 @@ function CardShell({
           <div className="flex items-center gap-1.5">
             <div className="h-3 w-0.5 rounded-full bg-accent/40" />
             <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink-faint">
-              Section A · Front Page
+              Section A
             </span>
           </div>
-          <h2 className="font-display text-[22px] leading-none tracking-tight text-ink">
-            World <span className="italic text-accent">&amp;</span> AI
+          <h2 className="font-display text-[26px] leading-tight tracking-tight text-ink">
+            News
           </h2>
         </div>
         <div className="flex items-center gap-4">
           {time && (
             <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-faint">
-              {itemCount} items · {time}
+              {time}
             </span>
           )}
           <RefreshButton />
@@ -83,8 +83,8 @@ export function WorldAICardSkeleton() {
   return (
     <section className="relative h-full rounded-2xl border border-rule bg-card/80 p-7 backdrop-blur-sm lg:p-9">
       <header className="mb-6 flex items-center justify-between border-b border-rule pb-4">
-        <h2 className="font-display text-[22px] leading-none tracking-tight text-ink">
-          World <span className="italic text-accent">&amp;</span> AI
+        <h2 className="font-display text-[26px] leading-tight tracking-tight text-ink">
+          News
         </h2>
         <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink-faint">
           composing edition…

@@ -6,6 +6,25 @@ import { fetchSportsNews, type Sport, type SportFeedItem } from "./news";
 import { getSportsStrip, type StripState } from "./strip";
 import { preferenceTerms } from "@/config/preferences";
 
+async function fetchOgImage(url: string): Promise<string | undefined> {
+  try {
+    const res = await fetch(url, {
+      signal: AbortSignal.timeout(4000),
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; DailyCompanion/1.0)" },
+    });
+    if (!res.ok) return undefined;
+    const html = await res.text();
+    const m =
+      html.match(/<meta[^>]+property=["']og:image["'][^>]*content=["']([^"']+)["']/i) ||
+      html.match(/<meta[^>]+content=["']([^"']+)["'][^>]*property=["']og:image["']/i);
+    const raw = m?.[1];
+    if (!raw || raw.startsWith("data:")) return undefined;
+    return raw.startsWith("http") ? raw : new URL(raw, url).href;
+  } catch {
+    return undefined;
+  }
+}
+
 export type SportBullet = {
   headline: string;
   why: string;
@@ -21,6 +40,7 @@ export type SportsBriefing = {
   strip: StripState;
   lead: SportBullet | null;
   rest: SportBullet[];
+  rawBySport: Record<string, SportFeedItem[]>;
   generatedAt: string;
   itemCount: number;
 };
@@ -28,11 +48,18 @@ export type SportsBriefing = {
 async function fetchSportsBriefing(): Promise<SportsBriefing> {
   const [items, strip] = await Promise.all([fetchSportsNews(), getSportsStrip()]);
 
+  const rawBySport: Record<string, SportFeedItem[]> = {};
+  for (const item of items) {
+    if (!rawBySport[item.sport]) rawBySport[item.sport] = [];
+    rawBySport[item.sport].push(item);
+  }
+
   if (items.length === 0) {
     const empty: SportsBriefing = {
       strip,
       lead: null,
       rest: [],
+      rawBySport: {},
       generatedAt: new Date().toISOString(),
       itemCount: 0,
     };
@@ -52,12 +79,21 @@ async function fetchSportsBriefing(): Promise<SportsBriefing> {
   const prompt = buildPrompt(tagged);
   const raw = await generate(prompt);
   const picks = parsePicks(raw, tagged);
-  const bullets: SportBullet[] = picks.length ? picks : fallbackBullets(tagged);
+  const rawBullets: SportBullet[] = picks.length ? picks : fallbackBullets(tagged);
+
+  const bullets = await Promise.all(
+    rawBullets.map(async (b) => {
+      if (b.image) return b;
+      const og = await fetchOgImage(b.link);
+      return og ? { ...b, image: og } : b;
+    }),
+  );
 
   return {
     strip,
     lead: bullets[0] ?? null,
     rest: bullets.slice(1, 5),
+    rawBySport,
     generatedAt: new Date().toISOString(),
     itemCount: recent.length,
   };
