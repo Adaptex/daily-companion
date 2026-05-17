@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getSportsBriefing, type SportsBriefing } from "@/lib/sports/briefing";
 import { SportSlideshow } from "@/components/SportSlideshow";
 
@@ -54,6 +55,14 @@ function CardShell({ children }: { children: React.ReactNode }) {
         </span>
       </header>
       {children}
+      <div className="mt-4 border-t border-rule pt-3 flex justify-end">
+        <Link
+          href="/sports"
+          className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-faint transition-colors hover:text-accent"
+        >
+          All sports →
+        </Link>
+      </div>
     </section>
   );
 }
